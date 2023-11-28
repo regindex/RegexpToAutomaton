@@ -10,8 +10,8 @@ EXECS = regToNfa
 
 all: $(EXECS)
 
-regToNfa: main.cpp internal/glushkov-automaton.hpp internal/nfa.hpp internal/common.hpp
-	$(CCX) $(CCX_FLAGS) -o $@ main.cpp internal/glushkov-automaton.hpp internal/nfa.hpp internal/common.hpp
+regToNfa: main.cpp
+	$(CCX) $(CCX_FLAGS) -o $@ main.cpp
 
 clean:
 	rm -f $(EXECS)

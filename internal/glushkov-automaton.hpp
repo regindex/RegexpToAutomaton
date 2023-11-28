@@ -274,6 +274,8 @@ void process_union_oper(stree_node* node, NFA* automaton, std::vector<char>& map
 
     node->min = node->left->min or node->right->min;
 
+    // if ? or * operator then a source can be found in the right branch
+    // this is not true for + 
     if( node->unary == 0 or node->unary == 1 )
     {
         node->min = false;
@@ -285,6 +287,7 @@ void process_symbol_oper(stree_node* node, NFA* automaton, std::vector<char>& ma
     node->lmost.push_back(node->value);
     node->rmost.push_back(node->value);
 
+    // if case of a + or * operator create a self-loop
     if( node->unary > 0 )
     {
         if(vmode) std::cout << node->value+1 << " - " << mapping[node->value] << " -> " << node->value+1 << "\n";
@@ -328,7 +331,7 @@ void compute_source_states(stree_node* node, NFA* automaton, std::vector<char>& 
     {
         compute_source_states(node->left, automaton, mapping);
 
-        if( not node->left->min )
+        if( op_char(node->type) == '|' or (not node->left->min) )
         {
             compute_source_states(node->right, automaton, mapping);
         }
@@ -347,7 +350,7 @@ void compute_final_states(stree_node* node, NFA* automaton)
     {
         compute_final_states(node->right, automaton);
 
-        if( not node->right->min )
+        if( op_char(node->type) == '|' or (not node->right->min) )
         {
             compute_final_states(node->left, automaton);
         }
