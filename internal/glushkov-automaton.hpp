@@ -97,7 +97,7 @@ void printBT(const stree_node *root)
 uint compute_postfix_format(std::string &regexp)
 {
     std::size_t len = regexp.size();
-    uint no_symbols = 0;
+    uint no_symbols = 0, j = 0;
 
     std::vector<char> regsep;
     regsep.reserve(len*2);
@@ -126,8 +126,9 @@ uint compute_postfix_format(std::string &regexp)
 
     regsep.push_back(regexp[len-1]);
 
-    std::memset(&regexp[0], '.', len);
-    size_t j = 0;
+    // create postfix regexp
+    regexp.resize(len*2);
+    std::memset(&regexp[0], '.', len*2);
     std::stack<char> stack;
     for(char c : regsep) 
     {
@@ -167,7 +168,7 @@ uint compute_postfix_format(std::string &regexp)
         regexp[j++] = stack.top();
         stack.pop();
     }
-
+    // resize regexp according to the final length
     regexp.resize(j);
 
     if(vmode) std::cout << "No. symbols in regexp: " << no_symbols << "\n";
