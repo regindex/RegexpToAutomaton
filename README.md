@@ -1,10 +1,20 @@
-# Regexp to NFA
-This is a software to construct the Glushkov automaton of a regular expression.
+# Regexp to Automaton
+This is a software to construct an automaton out of a regular expression.
 
 # Usage
 
 ```
-Usage: ./regToNFA <regexp> <verbose mode 0|1>
+Usage: ./regToAutomaton [regexp] [options]
+Tool to compute an automaton out of a regexp.
+
+    -n, --NFA
+        Compute the Glushkov automaton (NFA eps-free).
+    -d, --DFA
+        Compute the Glushkov DFA running the powerset construction algorithm.
+    -m, --DFAmin
+        Compute the minimized Glushkov DFA.
+    -v, --verbise
+        Activate the verbose mode.
 ```
 Supported operators: ()+?|* 
 
@@ -18,16 +28,20 @@ This tool requires:
 ### Download and Compile
 
 ```console
-git clone https://github.com/regindex/RegexpToNfa.git
-cd RegexpToNfa
+git clone -b develop https://github.com/regindex/RegexpToAutomaton.git
+cd RegexpToAutomaton
 make
 ```
 
 ### Run on Example Data
 
 ```console
-// Construct the NFA of a simple regexp
-./regToNfa "(a*(ab))+((b*)|a*)*" 1 (verbose mode on)
+// Construct the Glushkov NFA of a simple regexp
+./regToNfa "(a*(ab))+((b*)|a*)*" --NFA --verbose
+// Construct the Glushkov NFA and convert it into a DFA
+./regToNfa "(a*(ab))+((b*)|a*)*" 1 --DFA --verbose
+// Construct the Glushkov NFA and convert it into a minimum DFA
+./regToNfa "(a*(ab))+((b*)|a*)*" 1 --DFAmin --verbose
 ```
 
 ### Implementation:

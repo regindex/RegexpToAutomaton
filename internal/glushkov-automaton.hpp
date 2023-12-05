@@ -4,8 +4,6 @@
 #include "common.hpp"
 #include "nfa.hpp"
 
-bool vmode = false;
-
 void annotate_syntax_tree(stree_node* node, NFA* automaton, std::vector<char>& mapping);
 
 stree_node* compute_syntax_tree(std::string& regexp,std::vector<char>& mapping)
@@ -97,7 +95,7 @@ void printBT(const stree_node *root)
 uint compute_postfix_format(std::string &regexp)
 {
     std::size_t len = regexp.size();
-    uint no_symbols = 0;
+    uint no_symbols = 0, j = 0;
 
     std::vector<char> regsep;
     regsep.reserve(len*2);
@@ -126,8 +124,9 @@ uint compute_postfix_format(std::string &regexp)
 
     regsep.push_back(regexp[len-1]);
 
-    std::memset(&regexp[0], '.', len);
-    size_t j = 0;
+    // create postfix regexp
+    regexp.resize(len*2);
+    std::memset(&regexp[0], '.', len*2);
     std::stack<char> stack;
     for(char c : regsep) 
     {
@@ -167,7 +166,7 @@ uint compute_postfix_format(std::string &regexp)
         regexp[j++] = stack.top();
         stack.pop();
     }
-
+    // resize regexp according to the final length
     regexp.resize(j);
 
     if(vmode) std::cout << "No. symbols in regexp: " << no_symbols << "\n";
@@ -175,10 +174,18 @@ uint compute_postfix_format(std::string &regexp)
 }
 
 void process_concat_oper(stree_node* node, NFA* automaton, std::vector<char>& mapping)
-{
+{   
+    //std::cout << "**************\n";
     // recursive call
     annotate_syntax_tree(node->left, automaton, mapping);
     annotate_syntax_tree(node->right, automaton, mapping);
+
+    //std::cout << "type= " << (int)node->type << " left rmost= ";
+    //for(size_t i=0;i<node->left->rmost.size();++i)
+    //{
+    //    std::cout << node->left->rmost[i] << " ";
+    //}
+    //std::cout << "\n";
 
     for(size_t i=0;i<node->left->rmost.size();++i)
     {
@@ -265,12 +272,14 @@ void process_union_oper(stree_node* node, NFA* automaton, std::vector<char>& map
     node->lmost = node->left->lmost;
     node->lmost.insert( node->lmost.end(), node->right->lmost.begin(), node->right->lmost.end() );
     node->left->lmost.clear();
-    node->left->rmost.clear();
+    node->right->lmost.clear();
+    //node->left->rmost.clear();
 
     node->rmost = node->left->rmost;
     node->rmost.insert( node->rmost.end(), node->right->rmost.begin(), node->right->rmost.end() );
     node->right->rmost.clear();
-    node->right->lmost.clear();
+    node->left->rmost.clear();
+    //node->right->lmost.clear();
 
     node->min = node->left->min or node->right->min;
 
@@ -357,12 +366,12 @@ void compute_final_states(stree_node* node, NFA* automaton)
     }
 }
 
-NFA* compute_glushkov_automaton(std::string regexp, size_t sigma, bool verb)
+NFA* compute_glushkov_automaton(std::string regexp, size_t sigma, bool verb, bool to_stdout)
 {
     vmode = verb;
     NFA* glushkov_automaton = new NFA(compute_postfix_format(regexp)+1,sigma); 
 
-    if(vmode) std::cout << "###### Postfix regexp: " << regexp << "\n";
+    //if(vmode) std::cout << "###### Postfix regexp: " << regexp << "\n";
 
     std::vector<char> mapping;
     stree_node *syntax_root = compute_syntax_tree(regexp,mapping);
@@ -383,6 +392,20 @@ NFA* compute_glushkov_automaton(std::string regexp, size_t sigma, bool verb)
     mapping.clear();
 
     compute_final_states(syntax_root, glushkov_automaton);
+
+    if( to_stdout )
+    {
+        if(vmode) std::cout << "###### Final automaton to stdout" << std::endl;
+        // print stats
+        std::cout << glushkov_automaton->no_nodes() << " " << glushkov_automaton->no_edges() << " 0 " << glushkov_automaton->get_finals()->size() << "\n";
+        // print transitions
+        glushkov_automaton->print_transitions_NFA();
+        // print finals
+        for(uint i=0;i<glushkov_automaton->get_finals()->size();++i)
+        {
+            std::cout << (*glushkov_automaton->get_finals())[i] << "\n";
+        }
+    }
 
     return glushkov_automaton;
 }
