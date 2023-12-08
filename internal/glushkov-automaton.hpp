@@ -122,6 +122,7 @@ uint compute_postfix_format(std::string &regexp)
         }
     }
 
+    if( not (operators.count(regexp[len-1]) > 0) ){ no_symbols++; }
     regsep.push_back(regexp[len-1]);
 
     // create postfix regexp
@@ -209,10 +210,24 @@ void process_concat_oper(stree_node* node, NFA* automaton, std::vector<char>& ma
     }
 
     node->lmost = node->left->lmost;
-    node->left->lmost.clear();
-    node->left->rmost.clear();
+    // dire se c'è ? o * prendere entrambi
+    //if( node->left->unary == 0 or node->left->unary == 1 )
+    if( not node->left->min )
+    {
+        node->lmost.insert( node->lmost.end(), node->right->lmost.begin(), node->right->lmost.end() );
+    }
+    //node->left->lmost.clear();
+    //node->left->rmost.clear(); 
 
     node->rmost = node->right->rmost;
+    //if( node->right->unary == 0 or node->right->unary == 1 )
+    if( not node->right->min )
+    {
+        node->rmost.insert( node->rmost.end(), node->left->rmost.begin(), node->left->rmost.end() );
+    }
+
+    node->left->lmost.clear();
+    node->left->rmost.clear(); 
     node->right->rmost.clear();
     node->right->lmost.clear();
 
@@ -258,7 +273,8 @@ void process_union_oper(stree_node* node, NFA* automaton, std::vector<char>& map
                 automaton->add_edge(node->left->rmost[i]+1 , node->right->lmost[j]+1, mapping[node->right->lmost[j]]);
             }
 
-            if( node->right->unary < 1 )
+            //if( node->right->unary < 1 )
+            if( node->left->unary < 1 )
             {
                 for(size_t j=0;j<node->left->lmost.size();++j)
                 {
@@ -281,7 +297,8 @@ void process_union_oper(stree_node* node, NFA* automaton, std::vector<char>& map
     node->left->rmost.clear();
     //node->right->lmost.clear();
 
-    node->min = node->left->min or node->right->min;
+    //node->min = node->left->min or node->right->min;
+    node->min = node->left->min and node->right->min;
 
     // if ? or * operator then a source can be found in the right branch
     // this is not true for + 
@@ -366,6 +383,22 @@ void compute_final_states(stree_node* node, NFA* automaton)
     }
 }
 
+void check_empty_string(stree_node* root, NFA* automaton)
+{
+    if( op_char(root->type) == '_' )
+    {
+        if( (not root->right->min) and (not root->left->min) )
+            automaton->add_final_state(0);
+    }
+    else if( op_char(root->type) == '|' )
+    {
+        if( (not root->right->min) or (not root->left->min) )
+            automaton->add_final_state(0);
+    }
+    //if( ((not root->right->min) and (not root->left->min)) or (root->unary==0 or root->unary==1) )
+    //    automaton->add_final_state(0);
+}
+
 NFA* compute_glushkov_automaton(std::string regexp, size_t sigma, bool verb, bool to_stdout)
 {
     vmode = verb;
@@ -392,6 +425,7 @@ NFA* compute_glushkov_automaton(std::string regexp, size_t sigma, bool verb, boo
     mapping.clear();
 
     compute_final_states(syntax_root, glushkov_automaton);
+    check_empty_string(syntax_root, glushkov_automaton);
 
     if( to_stdout )
     {

@@ -1,5 +1,4 @@
-/*https://github.com/WalkerCodeRanger/dfaMinimizationComparison*/
-/* Code below heavily adapted from code provided in "Fast brief practical DFA minimization" by Antti Valmari (2011) */
+/* Code taken from https://github.com/WalkerCodeRanger/dfaMinimizationComparison*/
 
 #include <iostream>
 #include <algorithm>

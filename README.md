@@ -13,7 +13,7 @@ Tool to compute an automaton out of a regexp.
         Compute the Glushkov DFA running the powerset construction algorithm.
     -m, --DFAmin
         Compute the minimized Glushkov DFA.
-    -v, --verbise
+    -v, --verbose
         Activate the verbose mode.
 ```
 Supported operators: ()+?|* 
@@ -22,6 +22,10 @@ Supported operators: ()+?|*
 
 This tool requires:
 * A modern C++17 compiler.
+
+### External resources
+
+* [dfaMinimization](https://github.com/WalkerCodeRanger/dfaMinimizationComparison)
 
 # Example
 

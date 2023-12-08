@@ -115,6 +115,8 @@ NFA* compute_powerset_construction(NFA* A, bool vmode = false, bool to_stdout = 
     }
     // run powerset construction starting from source state
     powerset_construction(A,glushkov_dfa,&curr,0);
+    // check if the source is final
+    if( iget(F,0) ) glushkov_dfa->add_final_state(0);
 
     if(vmode) print_mapping(nodes);
 

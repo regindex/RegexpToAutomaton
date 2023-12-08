@@ -35,7 +35,7 @@ struct stree_node
     std::vector<int> lmost,rmost;
     bool min;
 
-	stree_node(char type_, char value_)
+	stree_node(char type_, int value_)
 	{
 		this->type = type_;
 		this->value = value_;
