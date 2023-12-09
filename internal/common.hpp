@@ -29,17 +29,19 @@ struct Args
 struct stree_node
 {
 	char type, unary; 
-    int value;
+    uint value;
 	stree_node *left, *right;
 
-    std::vector<int> lmost,rmost;
-    bool min;
+    std::vector<uint> lmost, rmost;
+    // maybe be empty bool
+    bool mbe;
 
-	stree_node(char type_, int value_)
+	stree_node(char type_, uint value_)
 	{
 		this->type = type_;
 		this->value = value_;
         this->unary = -1;
+        this->mbe = false;
 		this->right = nullptr;
 		this->left = nullptr;
 	}

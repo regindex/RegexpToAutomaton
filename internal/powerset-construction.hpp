@@ -101,7 +101,7 @@ void print_mapping(uint nodes)
 
 NFA* compute_powerset_construction(NFA* A, bool vmode = false, bool to_stdout = false)
 {
-    if(vmode) std::cout << "###### Computing the Glushkov DFA\n";
+    if(vmode) std::cout << "###### Computing the Glushkov DFA:\n";
     // initialize glushkov DFA
     NFA* glushkov_dfa = new NFA(A->get_sigma()); 
     nodes = A->no_nodes();
@@ -122,7 +122,7 @@ NFA* compute_powerset_construction(NFA* A, bool vmode = false, bool to_stdout = 
 
     if( to_stdout )
     {
-        if(vmode) std::cout << "###### Final automaton to stdout" << std::endl;
+        if(vmode) std::cout << "###### Final automaton to stdout:" << std::endl;
         // print stats
         std::cout << glushkov_dfa->no_nodes() << " " << glushkov_dfa->no_edges() << " 0 " << glushkov_dfa->get_finals()->size() << "\n";
         // print transitions

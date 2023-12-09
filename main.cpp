@@ -73,12 +73,6 @@ int main(int argc, char *argv[])
     Args arg;
     parseArgs(argc, argv, arg);
 
-    //std::string regexp = std::string(argv[1]);
-    //verbose = atoi(argv[2]);
-  
-    //regexp = "(a*(ab))+((b*)|a*)*";
-    //std::cout << "regexp: " << regexp << "\n"; 
-
     if( arg.NFA )
     {
         compute_glushkov_automaton(arg.regexp,sigma,arg.verbose,true);
@@ -93,9 +87,9 @@ int main(int argc, char *argv[])
         NFA* glushkov_automaton = compute_glushkov_automaton(arg.regexp,sigma,arg.verbose,false);
         NFA* glushkov_dfa       = compute_powerset_construction(glushkov_automaton,arg.verbose,false);
         delete glushkov_automaton;
-        if(arg.verbose) std::cout << "###### Minimized DFA to stdout" << std::endl;
+        if(arg.verbose) std::cout << "###### Minimized DFA to stdout:" << std::endl;
         minimize_DFA(glushkov_dfa);
     }
-
+    
 	return 0;
 }

@@ -1,5 +1,8 @@
 /* Code taken from https://github.com/WalkerCodeRanger/dfaMinimizationComparison*/
 
+#ifndef DFA_MINIMIZATION_HPP
+#define DFA_MINIMIZATION_HPP
+
 #include <iostream>
 #include <algorithm>
 #include "nfa.hpp"
@@ -293,3 +296,5 @@ void minimize_DFA(NFA* A)
 		}
 	}
 }
+
+#endif

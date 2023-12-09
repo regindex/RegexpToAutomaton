@@ -8,33 +8,33 @@ void annotate_syntax_tree(stree_node* node, NFA* automaton, std::vector<char>& m
 
 stree_node* compute_syntax_tree(std::string& regexp,std::vector<char>& mapping)
 {
-	std::stack<stree_node*> stack;
+    std::stack<stree_node*> stack;
     uint32_t id = 0; 
 
-	for(char c : regexp)
-	{
-		if( c == '|' )
-		{
+    for(char c : regexp)
+    {
+        if( c == '|' )
+        {
             stree_node* z = new stree_node(op_code('|'),-1);
             z->right = stack.top();
             stack.pop();
             z->left = stack.top();
             stack.pop();
             stack.push(z);
-		}
-		else if( c == '_' )
-		{
-			stree_node* z = new stree_node(op_code('_'),-1);
+        }
+        else if( c == '_' )
+        {
+            stree_node* z = new stree_node(op_code('_'),-1);
             z->right = stack.top();
             stack.pop();
             z->left = stack.top();
             stack.pop();
             stack.push(z);
-		}
-		else if( c == '*' )
-		{
+        }
+        else if( c == '*' )
+        {
             stack.top()->unary = 1;
-		}
+        }
         else if( c == '+' )
         {
             stack.top()->unary = 2;
@@ -43,15 +43,15 @@ stree_node* compute_syntax_tree(std::string& regexp,std::vector<char>& mapping)
         {
             stack.top()->unary = 0;
         }
-		else
-		{
+        else
+        {
             mapping.push_back(c);
-			stack.push( new stree_node(0, id++) );
-		}
-	}
+            stack.push( new stree_node(0, id++) );
+        }
+    }
 
-	assert( stack.size() == 1 );
-	return stack.top();
+    assert( stack.size() == 1 );
+    return stack.top();
 }
 
 void printBT(const std::string& prefix, const stree_node *node, bool isLeft)
@@ -67,7 +67,7 @@ void printBT(const std::string& prefix, const stree_node *node, bool isLeft)
 
             std::string oper = "";
             oper += op_char(node->type);
-        	
+            
             if(node->unary == 1){ oper += "*"; }
             else if(node->unary == 2){ oper += "+"; }
             else if(node->unary == 0){ oper += "?"; }
@@ -79,7 +79,7 @@ void printBT(const std::string& prefix, const stree_node *node, bool isLeft)
             else if(node->unary == 2){ oper += "+"; }
             else if(node->unary == 0){ oper += "?"; }
             std::cout << node->value + 1 << oper << std::endl;
-    	}
+        }
 
         // enter the next tree level - left and right branch
         printBT( prefix + (isLeft ? "│   " : "    "), node->left, true);
@@ -174,20 +174,61 @@ uint compute_postfix_format(std::string &regexp)
     return no_symbols;
 }
 
+void compute_mbe_stree(stree_node *root)
+{
+    if( op_char(root->type) == '_' )
+    {
+        compute_mbe_stree(root->left); compute_mbe_stree(root->right);
+        if( root->unary == 0 or root->unary == 1 ){  root->mbe = true; }
+        else
+        {
+            root->mbe = root->left->mbe and root->right->mbe;
+        }
+    }
+    else if( op_char(root->type) == '|' )
+    {
+        compute_mbe_stree(root->left); compute_mbe_stree(root->right);
+        if( root->unary == 0 or root->unary == 1 ){  root->mbe = true; }
+        else
+        {
+            root->mbe = root->left->mbe or root->right->mbe;
+        }
+    }
+    else
+    {
+        if( root->unary == 0 or root->unary == 1 ){  root->mbe = true; }
+    }
+}
+
+void propagate_kleene(stree_node *root, bool propagate)
+{
+    if( propagate ){ root->unary = 1; }
+
+    if( op_char(root->type) == '_' )
+    {
+        if( root->unary >= 1 )
+        {
+            if( root->right->mbe ){ propagate_kleene(root->left, true); }
+            else{ propagate_kleene(root->left, false); }
+            if( root->left->mbe ){ propagate_kleene(root->right, true); }
+            else{ propagate_kleene(root->right, false); }
+        }
+        else{ propagate_kleene(root->left, false); propagate_kleene(root->right, false); }
+    }
+    else if( op_char(root->type) == '|' )
+    {
+        if( root->unary >= 1 )
+        { propagate_kleene(root->right, true); propagate_kleene(root->left, true); }
+        else{ propagate_kleene(root->right, false); propagate_kleene(root->left, false); }
+    } 
+}
+
 void process_concat_oper(stree_node* node, NFA* automaton, std::vector<char>& mapping)
 {   
-    //std::cout << "**************\n";
     // recursive call
     annotate_syntax_tree(node->left, automaton, mapping);
     annotate_syntax_tree(node->right, automaton, mapping);
-
-    //std::cout << "type= " << (int)node->type << " left rmost= ";
-    //for(size_t i=0;i<node->left->rmost.size();++i)
-    //{
-    //    std::cout << node->left->rmost[i] << " ";
-    //}
-    //std::cout << "\n";
-
+    // 
     for(size_t i=0;i<node->left->rmost.size();++i)
     {
         for(size_t j=0;j<node->right->lmost.size();++j)
@@ -196,7 +237,7 @@ void process_concat_oper(stree_node* node, NFA* automaton, std::vector<char>& ma
             automaton->add_edge(node->left->rmost[i]+1, node->right->lmost[j]+1, mapping[node->right->lmost[j]]);
         }
     }
-
+    // if we have a * or + node
     if( node->unary > 0 )
     {
         for(size_t i=0;i<node->right->rmost.size();++i)
@@ -211,32 +252,19 @@ void process_concat_oper(stree_node* node, NFA* automaton, std::vector<char>& ma
 
     node->lmost = node->left->lmost;
     // dire se c'è ? o * prendere entrambi
-    //if( node->left->unary == 0 or node->left->unary == 1 )
-    if( not node->left->min )
+    if( node->left->mbe )
     {
         node->lmost.insert( node->lmost.end(), node->right->lmost.begin(), node->right->lmost.end() );
     }
-    //node->left->lmost.clear();
-    //node->left->rmost.clear(); 
 
     node->rmost = node->right->rmost;
-    //if( node->right->unary == 0 or node->right->unary == 1 )
-    if( not node->right->min )
+    if( node->right->mbe )
     {
         node->rmost.insert( node->rmost.end(), node->left->rmost.begin(), node->left->rmost.end() );
     }
 
-    node->left->lmost.clear();
-    node->left->rmost.clear(); 
-    node->right->rmost.clear();
-    node->right->lmost.clear();
-
-    node->min = node->left->min or node->right->min;
-
-    if( node->unary == 0 or node->unary == 1 )
-    {
-        node->min = false;
-    }
+    node->left->lmost.clear(); node->left->rmost.clear(); 
+    node->right->rmost.clear(); node->right->lmost.clear();
 }
 
 void process_union_oper(stree_node* node, NFA* automaton, std::vector<char>& mapping)
@@ -254,15 +282,6 @@ void process_union_oper(stree_node* node, NFA* automaton, std::vector<char>& map
                 if(vmode) std::cout << node->right->rmost[i]+1 << " - " << mapping[node->left->lmost[j]] << " -> " << node->left->lmost[j]+1 << "\n";
                 automaton->add_edge(node->right->rmost[i]+1 , node->left->lmost[j]+1, mapping[node->left->lmost[j]]);
             }
-
-            if( node->right->unary < 1 )
-            {
-                for(size_t j=0;j<node->right->lmost.size();++j)
-                {
-                    if(vmode) std::cout << node->right->rmost[i]+1 << " - " << mapping[node->right->lmost[j]] << " -> " << node->right->lmost[j]+1 << "\n";
-                    automaton->add_edge(node->right->rmost[i]+1 , node->right->lmost[j]+1, mapping[node->right->lmost[j]]);
-                }
-            }
         }
 
         for(size_t i=0;i<node->left->rmost.size();++i)
@@ -272,44 +291,21 @@ void process_union_oper(stree_node* node, NFA* automaton, std::vector<char>& map
                 if(vmode) std::cout << node->left->rmost[i]+1 << " - " << mapping[node->right->lmost[j]] << " -> " << node->right->lmost[j]+1 << "\n";
                 automaton->add_edge(node->left->rmost[i]+1 , node->right->lmost[j]+1, mapping[node->right->lmost[j]]);
             }
-
-            //if( node->right->unary < 1 )
-            if( node->left->unary < 1 )
-            {
-                for(size_t j=0;j<node->left->lmost.size();++j)
-                {
-                    if(vmode) std::cout << node->left->rmost[i]+1 << " - " << mapping[node->left->lmost[j]] << " -> " << node->left->lmost[j]+1 << "\n";
-                    automaton->add_edge(node->left->rmost[i]+1 , node->left->lmost[j]+1, mapping[node->left->lmost[j]]);
-                }
-            }
         }
     }
 
     node->lmost = node->left->lmost;
     node->lmost.insert( node->lmost.end(), node->right->lmost.begin(), node->right->lmost.end() );
-    node->left->lmost.clear();
-    node->right->lmost.clear();
-    //node->left->rmost.clear();
+    node->left->lmost.clear(); node->right->lmost.clear();
 
     node->rmost = node->left->rmost;
     node->rmost.insert( node->rmost.end(), node->right->rmost.begin(), node->right->rmost.end() );
-    node->right->rmost.clear();
-    node->left->rmost.clear();
-    //node->right->lmost.clear();
-
-    //node->min = node->left->min or node->right->min;
-    node->min = node->left->min and node->right->min;
-
-    // if ? or * operator then a source can be found in the right branch
-    // this is not true for + 
-    if( node->unary == 0 or node->unary == 1 )
-    {
-        node->min = false;
-    }
+    node->right->rmost.clear(); node->left->rmost.clear();
 }
 
 void process_symbol_oper(stree_node* node, NFA* automaton, std::vector<char>& mapping)
 {
+    // initialize lmost and rmost vectors
     node->lmost.push_back(node->value);
     node->rmost.push_back(node->value);
 
@@ -319,18 +315,11 @@ void process_symbol_oper(stree_node* node, NFA* automaton, std::vector<char>& ma
         if(vmode) std::cout << node->value+1 << " - " << mapping[node->value] << " -> " << node->value+1 << "\n";
         automaton->add_edge(node->value+1, node->value+1, mapping[node->value]);
     }
-
-    node->min = true;
-
-    if( node->unary == 0 or node->unary == 1 )
-    {
-        node->min = false;
-    }
 }
 
 void annotate_syntax_tree(stree_node* node, NFA* automaton, std::vector<char>& mapping)
 {   
-
+    // check type of node
     if( op_char(node->type) == '_' )
     {
         process_concat_oper(node, automaton, mapping);  
@@ -357,7 +346,7 @@ void compute_source_states(stree_node* node, NFA* automaton, std::vector<char>& 
     {
         compute_source_states(node->left, automaton, mapping);
 
-        if( op_char(node->type) == '|' or (not node->left->min) )
+        if( op_char(node->type) == '|' or node->left->mbe )
         {
             compute_source_states(node->right, automaton, mapping);
         }
@@ -376,29 +365,25 @@ void compute_final_states(stree_node* node, NFA* automaton)
     {
         compute_final_states(node->right, automaton);
 
-        if( op_char(node->type) == '|' or (not node->right->min) )
+        if( op_char(node->type) == '|' or node->right->mbe )
         {
             compute_final_states(node->left, automaton);
         }
     }
 }
 
-void check_empty_string(stree_node* root, NFA* automaton)
+void check_0_final(stree_node* root, NFA* automaton)
 {
-    if( op_char(root->type) == '_' )
+    if( root->mbe )
     {
-        if( (not root->right->min) and (not root->left->min) )
-            automaton->add_final_state(0);
+        automaton->add_final_state(0);
+        if(vmode) std::cout << "0\n";
     }
-    else if( op_char(root->type) == '|' )
-    {
-        if( (not root->right->min) or (not root->left->min) )
-            automaton->add_final_state(0);
-    }
-    //if( ((not root->right->min) and (not root->left->min)) or (root->unary==0 or root->unary==1) )
-    //    automaton->add_final_state(0);
 }
 
+/*
+    MAIN FUNCTION CONSTRUCTING GLUSHKOV AUTOMATON
+*/
 NFA* compute_glushkov_automaton(std::string regexp, size_t sigma, bool verb, bool to_stdout)
 {
     vmode = verb;
@@ -408,28 +393,30 @@ NFA* compute_glushkov_automaton(std::string regexp, size_t sigma, bool verb, boo
 
     std::vector<char> mapping;
     stree_node *syntax_root = compute_syntax_tree(regexp,mapping);
+    compute_mbe_stree(syntax_root);
 
     if(vmode){
 
-    std::cout << "###### Syntax tree of: " << regexp << "\n";
+    std::cout << "###### Syntax tree:\n";
 
     printBT(syntax_root);
 
-    std::cout << "###### Computing the Glushkov automaton for: " << regexp << "\n";
+    std::cout << "###### Computing the Glushkov automaton:\n";
     }
+
+    propagate_kleene(syntax_root,false);
 
     annotate_syntax_tree(syntax_root, glushkov_automaton, mapping);
 
     compute_source_states(syntax_root, glushkov_automaton, mapping);
-
     mapping.clear();
 
     compute_final_states(syntax_root, glushkov_automaton);
-    check_empty_string(syntax_root, glushkov_automaton);
+    check_0_final(syntax_root, glushkov_automaton);
 
     if( to_stdout )
     {
-        if(vmode) std::cout << "###### Final automaton to stdout" << std::endl;
+        if(vmode) std::cout << "###### Final automaton to stdout:" << std::endl;
         // print stats
         std::cout << glushkov_automaton->no_nodes() << " " << glushkov_automaton->no_edges() << " 0 " << glushkov_automaton->get_finals()->size() << "\n";
         // print transitions
