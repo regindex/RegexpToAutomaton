@@ -71,6 +71,10 @@ void parseArgs(int argc, char** argv, Args_gen& arg) {
         {
             arg.alphabet = 1;
         }
+        else if( param == "-h" or param == "--help" )
+        {
+            print_help(argv); exit(1);
+        }
         else
         {
             std::cerr << "Unknown option. Use -h for help." << std::endl;
