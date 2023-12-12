@@ -18,7 +18,7 @@ void print_help(char** argv) {
         << "    -m, --DFAmin" << std::endl
         << "        Compute the minimized Glushkov DFA." << std::endl 
 
-        << "    -v, --verbise" << std::endl
+        << "    -v, --verbose" << std::endl
         << "        Activate the verbose mode." << std::endl 
         << std::endl;
 }

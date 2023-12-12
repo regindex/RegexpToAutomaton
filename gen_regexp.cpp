@@ -2,58 +2,141 @@
 #include "internal/powerset-construction.hpp"
 #include "internal/dfa-minimization.hpp"
 
-#include <random>
+const std::vector<char> DNA_vec{'a','c','g','t'};
 
-template<typename T>
-T random(T range_from, T range_to) {
-    std::random_device                  rand_dev;
-    std::mt19937                        generator(rand_dev());
-    std::uniform_int_distribution<T>    distr(range_from, range_to);
-    return distr(generator);
+// function that prints the instructions for using the tool
+void print_help(char** argv) { 
+    std::cout << std::endl <<
+        "Usage: " << argv[0] << " [options]" << std::endl 
+
+        << "Tool to compute a random regexp." << std::endl << std::endl
+
+        << "    -m, --maxDepth" << std::endl 
+        << "        maximum depth of the regexp syntex tree. Default: 4." << std::endl 
+
+        << "    -u, --unionP" << std::endl 
+        << "        Probability of sampling a union operator (|). Default: 20%." << std::endl 
+
+        << "    -c, --concatP" << std::endl 
+        << "        Probability of sampling a concat operator. Default: 40%." << std::endl 
+
+        << "    -k, --kleeneP" << std::endl
+        << "        Probability of sampling a kleene star operator (*). Default: 10%." << std::endl 
+
+        << "    -p, --plusP" << std::endl
+        << "        Probability of sampling a plus operator (+). Default: 10%." << std::endl 
+
+        << "    -q, --questionP" << std::endl
+        << "        Probability of sampling a question operator (?). Default: 10%." << std::endl 
+
+        << "    --DNA" << std::endl
+        << "        Use characters from DNA alphabet Default: English alphabet." << std::endl 
+        << std::endl;
 }
 
-void compute_random_tree(stree_node* root, uint type, uint unary, uint depth)
+// function for parsing the input arguments
+void parseArgs(int argc, char** argv, Args_gen& arg) {
+
+    // read and parse input parameters
+    for(int i=1;i<argc;++i)
+    {
+        std::string param = argv[i];
+        i++;
+
+        if( param == "-m" or param == "--maxDepth" )
+        {
+            arg.max_depth = std::atoi( argv[i] );
+        }
+        else if( param == "-u" or param == "--unionP" )
+        {
+            arg.unionP = std::atoi( argv[i] );
+        }
+        else if( param == "-c" or param == "--concatP" )
+        {
+            arg.concatP = std::atoi( argv[i] );
+        }
+        else if( param == "-k" or param == "--kleeneP" )
+        {
+            arg.kleeneP = std::atoi( argv[i] );
+        }
+        else if( param == "-p" or param == "--plusP" )
+        {
+            arg.plusP = std::atoi( argv[i] );
+        }
+        else if( param == "-q" or param == "--questionP" )
+        {
+            arg.questionP = std::atoi( argv[i] );
+        }
+        else if( param == "--DNA" )
+        {
+            arg.alphabet = 1;
+        }
+        else
+        {
+            std::cerr << "Unknown option. Use -h for help." << std::endl;
+            exit(-1);
+        }
+    }
+    // check mode
+    uint counter = arg.unionP + arg.concatP;
+    if(counter > 100)
+    {
+            std::cerr << "Union and concat joined prob. must be <= 100" << std::endl;
+            exit(1);
+    }
+    counter = arg.kleeneP + arg.plusP + arg.questionP;
+    if(counter > 100)
+    {
+            std::cerr << "Kleene, plus, question joined prob. must be <= 100" << std::endl;
+            exit(1);
+    }
+}
+
+void compute_random_tree(stree_node* root, uint depth, Args_gen& arg)
 {
+    // compute two random numbers
+    uint type = random(0,100);
+    uint unary = random(0,100);
     // compute type
-    if( type < 20 ){ type = 2; }
-    else if( type >= 20 and type < 60 ){ type = 0; }
-    else{ type = 1; }
+    if( type < arg.unionP ){ type = 0; }
+    else if( type >= arg.unionP and type < arg.unionP + arg.concatP ){ type = 1; }
+    else{ type = 2; }
     // compute unary operator
-    if( unary < 10 ){ root->unary = 1; }
-    else if( unary >= 10 and unary < 20 ){ root->unary = 2; }
-    else if( unary >= 20 and unary < 30 ){ root->unary = 3; }
+    if( unary < arg.kleeneP ){ root->unary = 1; }
+    else if( unary >= arg.kleeneP and unary < (arg.kleeneP + arg.plusP) ){ root->unary = 2; }
+    else if( unary >= (arg.kleeneP + arg.plusP) and unary < (arg.kleeneP + arg.plusP + arg.questionP) ){ root->unary = 3; }
     else{ root->unary = 0; }
     // if max depth reached
-    if( depth == 4 ){ type = 2; }
+    if( depth == arg.max_depth ){ type = 2; }
     else if( depth == 0 ){ type = random(0,1); }
 
     if( type==0 )
     {
-        //std::cout << "type: " << type << "\n";
         root->type = op_code('|');
         root->value = -1;
         root->left = new stree_node(0,0);
         root->right = new stree_node(0,0);
         // recurse
-        compute_random_tree(root->left,random(0,100),random(0,100),depth+1);
-        compute_random_tree(root->right,random(0,100),random(0,100),depth+1);
+        compute_random_tree(root->left,depth+1,arg);
+        compute_random_tree(root->right,depth+1,arg);
     }
     else if ( type==1 )
     {
-        //std::cout << "Type: " << type << "\n";
         root->type = op_code('_');
         root->value = -1;
         root->left = new stree_node(0,0);
         root->right = new stree_node(0,0);
         // recurse
-        compute_random_tree(root->left,random(0,100),random(0,100),depth+1);
-        compute_random_tree(root->right,random(0,100),random(0,100),depth+1);
+        compute_random_tree(root->left,depth+1,arg);
+        compute_random_tree(root->right,depth+1,arg);
     }
     else
     {
-        //root = new stree_node(0,random(97,122));
         root->type = 0;
-        root->value = random(97,122);
+        if( arg.alphabet == 0 )
+            root->value = random(97,122);
+        else if( arg.alphabet == 1 )
+            root->value = DNA_vec[random(0,3)];
     }
 }
 
@@ -61,7 +144,6 @@ void tree_to_reg(stree_node* node)
 {
     if( op_char(node->type)=='|' )
     {
-        //std::cout << "(" << tree_to_reg(node->left) << "|" << tree_to_reg(node->right) << ")";
         std::cout << "(";
         tree_to_reg(node->left);
         std::cout << "|";
@@ -70,13 +152,13 @@ void tree_to_reg(stree_node* node)
     }
     else if ( op_char(node->type)=='_' )
     {
-        //std::cout << tree_to_reg(node->left) << tree_to_reg(node->right);
+        std::cout << "(";
         tree_to_reg(node->left);
         tree_to_reg(node->right);
+        std::cout << ")";
     }
     else
     {
-        //return node->value;
         std::cout << (char)node->value;
     }
     // print unary op
@@ -88,19 +170,16 @@ void tree_to_reg(stree_node* node)
     }
 }
 
-//int main(int argc, char *argv[])
-int main()
+int main(int argc, char *argv[])
 {
+     // read arguments
+    Args_gen arg;
+    parseArgs(argc, argv, arg);
 
     stree_node* root = new stree_node(0,0);
-    uint type = random(0,100);
-    uint unary = random(0,100);
-    // 0 is (+), 1 is (.), 2 is a random symbol
-    compute_random_tree(root, type, unary, 0);
-    std::cout << "t: " << (int)root->type << "\n";
-    std::cout << root->right << "\n";
-    std::cout << root->left << "\n";
+    compute_random_tree(root, 0, arg);
     tree_to_reg(root);
+    
     std::cout << "\n";
 
 	return 0;

@@ -12,18 +12,35 @@
 #include <cassert>
 #include <cstring>
 #include <cstdint>
+#include <random>
 // GLOBAL VARIABLES ###################
 const char sep = '_';
 const std::set<char> operators({'+', '*', '.', '|', '(', ')', '_', '?', '+'});
 bool vmode = false;
 typedef uint32_t uint;
 int sigma = 128;
+// RANDOM NUMBER GENERATOR ###################
+template<typename T>
+T random(T range_from, T range_to) {
+    std::random_device                  rand_dev;
+    std::mt19937                        generator(rand_dev());
+    std::uniform_int_distribution<T>    distr(range_from, range_to);
+    return distr(generator);
+}
 // ARGS STRUCT ###################
 struct Args
 {
   std::string regexp;
   bool NFA = false, DFA = false, DFAmin = false;
   bool verbose = false; 
+};
+// ARGS REGEXP GEN ###################
+struct Args_gen
+{
+  uint max_depth = 4;
+  uint unionP = 20, concatP = 40;
+  uint kleeneP = 10, plusP = 10, questionP = 10;
+  uint alphabet = 1;
 };
 // SYNTAX TREE NODE####################
 struct stree_node

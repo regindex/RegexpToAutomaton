@@ -48,6 +48,13 @@ make
 ./regToNfa "(a*(ab))+((b*)|a*)*" 1 --DFAmin --verbose
 ```
 
+### Generate random regular expressions
+
+```console
+// Generate a random regexp with maximum syntax tree depth 4
+./randReg --maxDepth 4
+```
+
 ### Implementation:
 
 * [Davide Cenzato](https://github.com/davidecenzato)
